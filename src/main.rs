@@ -75,14 +75,79 @@ fn get_elements_for_row_col_square(array: &Array2<i32>, cord: (i32, i32)) -> Vec
 }
 
 
+pub mod solver {
+    pub fn valid(board: [[i8; 9]; 9], row: usize, column: usize, guess: i8) -> bool {
+        for x in 0..9 {
+            if board[row][x] == guess || board[x][column] == guess {
+                return false;
+            }
+        }
+        let x_index: usize = row / 3 * 3;
+        let y_index: usize = column / 3 * 3;
+
+        for x in 0..3 {
+            for y in 0..3 {
+                if board[x_index + x][y_index + y] == guess {
+                    return false;
+                }
+            }
+        }
+        return true
+    }
+
+    fn is_solved(board: [[i8; 9]; 9]) -> bool {
+        next_empty_cell(board) == (10, 10)
+    }
+
+    fn next_empty_cell(board: [[i8; 9]; 9]) -> (usize, usize) {
+        for row in 0..9 {
+            for column in 0..9 {
+                if board[row][column] == 0 {
+                    return (row, column);
+                }
+            }
+        }
+        return (10, 10)
+    }
+
+    fn guesses(board: [[i8; 9]; 9], row: usize, column: usize) -> Vec<i8> {
+        let mut result = vec![];
+        for guess in 1..10 {
+            if valid(board, row, column, guess) {
+                result.push(guess);
+            }
+        }
+        return result
+    }
+
+    pub fn solve(board: [[i8; 9]; 9]) -> [[i8; 9]; 9] {
+        let mut result = board;
+
+        let (row, column) = next_empty_cell(board);
+
+        if row == 10 && column == 10 {
+            return result;
+        }
+
+        for guess in guesses(board, row, column) {
+            result[row][column] = guess;
+            result = solve(result);
+            if is_solved(result) {
+                return result;
+            }
+        }
+        result = board;
+        return result;
+    }
+}
+
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
     let x = 0;
-    let since_the_beginning = std::time::Instant::now();
-    let array = array![
+    let array = [
         [x, 5, x, x, x, x, x, x, 9],
-        [x, x, 6, x, x, 8, 5, x, x],
         [x, x, 3, 4, 5, x, 2, x, x],
+        [x, x, 6, x, x, 8, 5, x, x],
         [x, 6, x, 3, 9, 7, x, x, 4],
         [x, 9, x, 2, 6, 1, x, x, 5],
         [x, 2, x, x, x, x, x, x, 3],
@@ -102,10 +167,12 @@ fn main() {
         [x, x, x, x, 7, x, x, 9, x],
     ];
 
-    let (success, array) = solve(array);
+    // let (success, array) = solve(array);
+    let since_the_beginning = std::time::Instant::now();
+    let arra = solver::solve(array2);
     let end = since_the_beginning.elapsed();
     // println!("{}", success);
-    for row in array.iter() {
+    for row in arra.iter() {
         println!("{:?}", row);
     }
     println!("{}ms", end.as_millis());
