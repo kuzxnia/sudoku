@@ -1,4 +1,5 @@
 from collections import defaultdict
+from time import time
 
 import numpy as np
 from numpy._typing import NDArray
@@ -100,6 +101,7 @@ def find_empty(array: NDArray):
 
 def main():
     x = X
+    start = time()
     table = [
         [x, 5, x, x, x, x, x, x, 9],
         [x, x, 6, x, x, 8, 5, x, x],
@@ -122,10 +124,12 @@ def main():
         [5, x, 7, x, 3, x, x, x, x],
         [x, x, x, x, 7, x, x, 9, x],
     ]
-    resolved, arr = solve(np.array(tab2))
+    resolved, arr = solve(np.array(table))
+    end = time()
 
     print(resolved)
     print(arr)
+    print('elepased', (end-start)*1000, 'ms')
     # print(get_posibilities((0,3), np.array(table)))
 
 

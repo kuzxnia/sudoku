@@ -1,33 +1,28 @@
 use std::{collections::HashSet, env};
 
-use ndarray::{array, s, Array1, Array2};
+use ndarray::{array, s, Array1, Array2, Array};
 
 fn solve(array: Array2<i32>) -> (bool, Array2<i32>) {
-    if array.clone().into_iter().find(|&x| x == 0).is_none() {
+    if !array.iter().any(|&x| x == 0) {
         return (true, array);
     }
 
-    let mut possibilities_by_cords = array
+    let ((row, col), possibilities) = array
         .indexed_iter()
-        .filter(|&(cord, elem)| array[cord] == 0)
-        .map(|(cord, elem)| {
-            (
-                (cord.0 as i32, cord.1 as i32),
-                get_possibilites(array.clone(), (cord.0 as i32, cord.1 as i32)),
-            )
+        .filter(|&(_, &elem)| elem == 0)
+        .map(|(cord, _)| {
+            let cord = (cord.0 as i32, cord.1 as i32);
+            ((cord), get_possibilites(&array, cord))
         })
-        .collect::<Vec<((i32, i32), Vec<i32>)>>();
+        .min_by(|a, b| a.1.len().cmp(&b.1.len()))
+        .unwrap();
 
-    possibilities_by_cords.sort_by(|a, b| a.1.len().cmp(&b.1.len()));
-
-    let (row, col) = possibilities_by_cords[0].0;
-
-    for possibility in possibilities_by_cords[0].1.clone() {
-        if valid(array.clone(), possibility, (row, col)) {
+    for possibility in possibilities.iter() {
+        if valid(&array, *possibility, (row, col)) {
             let mut new_array = array.clone();
-            new_array[[row as usize, col as usize]] = possibility;
+            new_array[[row as usize, col as usize]] = *possibility;
 
-            let (solved, new_array) = solve(new_array.clone());
+            let (solved, new_array) = solve(new_array);
             if solved {
                 return (true, new_array);
             }
@@ -36,16 +31,23 @@ fn solve(array: Array2<i32>) -> (bool, Array2<i32>) {
     return (false, array);
 }
 
-fn valid(array: Array2<i32>, num: i32, cord: (i32, i32)) -> bool {
-    return get_elements_for_row_col_square(array.clone(), cord)
-        .into_iter()
-        .all(|elem| elem != num);
+fn valid(array: &Array2<i32>, num: i32, cord: (i32, i32)) -> bool {
+    let (x, y) = cord;
+    let square_x = x / 3 * 3;
+    let square_y = y / 3 * 3;
+
+    return !array.slice(s![x, 0..]).iter().any(|&x| x == num)
+        || !array.slice(s![0.., y]).iter().any(|&x| x == num)
+        || !array
+            .slice(s![square_x..square_x + 3, square_y..square_y + 3])
+            .iter()
+            .any(|&x| x == num);
 }
 
-fn get_possibilites(array: Array2<i32>, cord: (i32, i32)) -> Vec<i32> {
+fn get_possibilites(array: &Array2<i32>, cord: (i32, i32)) -> Vec<i32> {
     return HashSet::from_iter(1..10)
         .difference(
-            &get_elements_for_row_col_square(array.clone(), cord)
+            &get_elements_for_row_col_square(&array, cord)
                 .into_iter()
                 .collect::<HashSet<i32>>(),
         )
@@ -53,7 +55,7 @@ fn get_possibilites(array: Array2<i32>, cord: (i32, i32)) -> Vec<i32> {
         .collect::<Vec<i32>>();
 }
 
-fn get_elements_for_row_col_square(array: Array2<i32>, cord: (i32, i32)) -> Vec<i32> {
+fn get_elements_for_row_col_square(array: &Array2<i32>, cord: (i32, i32)) -> Vec<i32> {
     let (x, y) = cord;
     let square_x = x / 3 * 3;
     let square_y = y / 3 * 3;
@@ -72,9 +74,11 @@ fn get_elements_for_row_col_square(array: Array2<i32>, cord: (i32, i32)) -> Vec<
         .collect();
 }
 
+
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
     let x = 0;
+    let since_the_beginning = std::time::Instant::now();
     let array = array![
         [x, 5, x, x, x, x, x, x, 9],
         [x, x, 6, x, x, 8, 5, x, x],
@@ -86,7 +90,7 @@ fn main() {
         [x, 3, x, x, x, x, x, x, 1],
         [x, x, 2, x, x, 5, 3, x, x],
     ];
-    let array2 = array![
+    let array2 = [
         [x, 2, x, x, 6, x, x, x, x],
         [x, x, x, x, 2, x, 7, x, 1],
         [x, 3, x, 8, x, x, x, x, 4],
@@ -98,8 +102,12 @@ fn main() {
         [x, x, x, x, 7, x, x, 9, x],
     ];
 
-    let (success, array) = solve(array2);
-    println!("{}", success);
-    println!("{:?}", array);
+    let (success, array) = solve(array);
+    let end = since_the_beginning.elapsed();
+    // println!("{}", success);
+    for row in array.iter() {
+        println!("{:?}", row);
+    }
+    println!("{}ms", end.as_millis());
     // println!("{}", Array::from_vec(get_possibilites(array, (0, 0))));
 }
